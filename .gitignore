@@ -24,3 +24,5 @@ hs_err_pid*
 
 # This should be in web.xml.example instead.
 WebContent/WEB-INF/web.xml
+
+target/*
