@@ -14,6 +14,7 @@ import java.util.Map;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -45,13 +46,15 @@ public class OIDCCallback extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
 		String authCode = request.getParameter("code");
-		ServletConfig sc=getServletConfig();
 		
-		String client_id = sc.getInitParameter("client_id");
-		String client_secret = sc.getInitParameter("client_secret");
-		String token_endpoint = sc.getInitParameter("token_endpoint");
-		String jwt_issuer = sc.getInitParameter("jwt_issuer");
-		String jwt_audience = sc.getInitParameter("jwt_audience");
+		String client_id = getServletContext().getInitParameter("client_id");
+		String client_secret = getServletContext().getInitParameter("client_secret");
+		String jwt_issuer = getServletContext().getInitParameter("jwt_issuer");
+		String jwt_audience = getServletContext().getInitParameter("jwt_audience");
+		String redirect_uri = getServletContext().getInitParameter("redirect_uri");
+		
+		//A very important step in the OAuth2 flow is validating the state parameter!
+		validateState(request);
 		
 		//We require an OAuth2 authorization code. If we don't have it, we're done.
 		if(authCode != null) {
@@ -61,11 +64,11 @@ public class OIDCCallback extends HttpServlet {
 					client_id,
 					client_secret,
 					authCode,
-					"http://localhost:8080/simple_auth_code_flow_java/oidc-callback");
+					redirect_uri);
 
 			HttpClient client = HttpClient.newHttpClient();
 			HttpRequest req = HttpRequest.newBuilder()
-					.uri(URI.create(token_endpoint))
+					.uri(URI.create(jwt_issuer + "/v1/token"))
 					.POST(BodyPublishers.ofString(body))
 					.header("Content-Type", "application/x-www-form-urlencoded")
 					.build();
@@ -105,5 +108,23 @@ public class OIDCCallback extends HttpServlet {
 			response.sendError(400, "Bad Request - this endpoint expects an OAuth2 authoriztion code, but none was provided.");
 		}
 	}
-
+	private void validateState(HttpServletRequest request) {
+		Cookie[] cookies = request.getCookies();
+		String sentState = "";
+		
+		//Get the state from the okta-oauth-state cookie.  Okta's SDK does this automatically when the
+		//authorize request is sent.
+		for (int i = 0; i < cookies.length; i++) {
+			if (cookies[i].getName() == "okta-oauth-state") {
+				sentState = cookies[i].getValue();
+			}
+		}
+		
+		//Get the state passed in the querystring back from the authorization server.
+		String receivedState = request.getParameter("state");
+		
+		assert(sentState.length() > 0);
+		assert(receivedState != null);
+		assert(sentState == receivedState);
+	}
 }

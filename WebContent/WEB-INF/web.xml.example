@@ -2,32 +2,34 @@
 <web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd" id="WebApp_ID" version="4.0">
   <display-name>simple_auth_code_flow_java</display-name>
   <welcome-file-list>
-  	<welcome-file>index.html</welcome-file>
+  	<welcome-file>index.jsp</welcome-file>
   </welcome-file-list>
-  <servlet>
-  	<servlet-name>OIDCCallback</servlet-name>
- 	<servlet-class>OIDCCallback</servlet-class>
- 	 <init-param>
+    <context-param>
+ 		<param-name>okta_org</param-name>
+ 		<param-value>https://_OKTA_ORG_NAME_.okta.com</param-value>
+ 	</context-param>
+  <context-param>
  		<param-name>client_id</param-name>
- 		<param-value>OKTA_CLIENT_ID</param-value>
- 	</init-param>
- 	<init-param>
+ 		<param-value>_OKTA_CLIENT_ID_</param-value>
+ 	</context-param>
+ 	<context-param>
  		<param-name>client_secret</param-name>
- 		<param-value>OKTA_CLIENT_SECRET</param-value>
- 	</init-param>
- 	<init-param>
- 		<param-name>token_endpoint</param-name>
- 		<param-value>OKTA_API_AM_TOKEN_ENDPOINT</param-value>
- 	</init-param>
- 	<init-param>
+ 		<param-value>_OKTA_CLIENT_SECRET_</param-value>
+ 	</context-param>
+ 	<context-param>
  		<param-name>jwt_issuer</param-name>
- 		<param-value>OKTA_API_AM_ISSUER</param-value>
- 	</init-param>
- 	<init-param>
+ 		<param-value>_OKTA_ISSUER_FROM_APIAM_AS_</param-value>
+ 	</context-param>
+ 	<context-param>
  		<param-name>jwt_audience</param-name>
- 		<param-value>OKTA_API_AM_AUD</param-value>
- 	</init-param>
-  </servlet>
-  
-
+ 		<param-value>_OKTA_AUDIENCE_FROM_APIAM_AS_</param-value>
+ 	</context-param>
+ 	<context-param>
+ 		<param-name>redirect_uri</param-name>
+ 		<param-value>http://localhost:8080/simple_auth_code_flow_java/oidc-callback</param-value>
+ 	</context-param>
+	<servlet>
+		<servlet-name>Login</servlet-name>
+		<jsp-file>/index.jsp</jsp-file>
+	</servlet>
 </web-app>

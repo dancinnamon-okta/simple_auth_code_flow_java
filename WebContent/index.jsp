@@ -1,3 +1,5 @@
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1" session="true" %>
 <!DOCTYPE html>
 <html>
   <head>
@@ -8,12 +10,13 @@
   <body>
     <div id="okta-login-container"></div>
     <script>
-      var okta_org = 'https://zimt.okta.com';
-      var okta_client_id = '0oa815y7vfH3Q2smG2p7';
-      var okta_apiam_server = 'default';
+      var okta_org = '<%= pageContext.getServletContext().getInitParameter("okta_org") %>';
+      var okta_client_id = '<%= pageContext.getServletContext().getInitParameter("client_id") %>';
+      var issuer = '<%= pageContext.getServletContext().getInitParameter("jwt_issuer") %>';
+      var redirect_uri = '<%= pageContext.getServletContext().getInitParameter("redirect_uri") %>'
 
       var auth_params = {
-        issuer: okta_org + '/oauth2/' + okta_apiam_server,
+        issuer: issuer,
         responseType: ['code'],
         scopes: ['openid', 'email', 'profile'],
       }
@@ -21,7 +24,7 @@
       var oktaSignIn = new OktaSignIn({
         baseUrl: okta_org,
         clientId: okta_client_id,
-        redirectUri: 'http://localhost:8080/simple_auth_code_flow_java/oidc-callback',
+        redirectUri: redirect_uri,
         authParams: auth_params
       });
 

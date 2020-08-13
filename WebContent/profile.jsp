@@ -3,9 +3,9 @@
 
 <!DOCTYPE html>
 <% 
-	
+	//Really, really basic "am i logged in?" logic.
 	if(session.getAttribute("jwt_user") == null) {
-		response.sendRedirect("index.html"); 
+		response.sendRedirect("index.jsp"); 
 	}
 	
 %>
@@ -15,8 +15,10 @@
 <title>Success!</title>
 </head>
 <body>
-	<%
-		out.print(session.getAttribute("jwt_user").toString());
-	%>
+<h1>Welcome,
+<%
+	out.print(session.getAttribute("jwt_user").toString());
+%>
+</h1>
 </body>
 </html>
