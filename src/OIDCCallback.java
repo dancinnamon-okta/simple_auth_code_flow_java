@@ -1,17 +1,15 @@
 
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.Cookie;
@@ -43,6 +41,7 @@ public class OIDCCallback extends HttpServlet {
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
+	@SuppressWarnings("unchecked")
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
 		String authCode = request.getParameter("code");
@@ -65,22 +64,15 @@ public class OIDCCallback extends HttpServlet {
 					client_secret,
 					authCode,
 					redirect_uri);
-
-			HttpClient client = HttpClient.newHttpClient();
-			HttpRequest req = HttpRequest.newBuilder()
-					.uri(URI.create(jwt_issuer + "/v1/token"))
-					.POST(BodyPublishers.ofString(body))
-					.header("Content-Type", "application/x-www-form-urlencoded")
-					.build();
-
-			HttpResponse<String> resp;
+			String tokenUrl = jwt_issuer + "/v1/token";
+			
 			try {
-				//Post to the /token endpoint to get our token.
-				resp = client.send(req, BodyHandlers.ofString());
+				//String tokenResponseBody = sendTokenRequestJava11Plus(tokenUrl, body);
+				String tokenResponseBody = sendTokenRequestPreJava11(tokenUrl, body);
 				
 				//The body contains several things- one of them is the access token we want.
 				Map<String,String> result =
-				        new ObjectMapper().readValue(resp.body(), HashMap.class);
+				        new ObjectMapper().readValue(tokenResponseBody, HashMap.class);
 				AccessTokenVerifier jwtVerifier = JwtVerifiers.accessTokenVerifierBuilder()
 						.setIssuer(jwt_issuer)
 						.setAudience(jwt_audience)				
@@ -96,9 +88,9 @@ public class OIDCCallback extends HttpServlet {
 			    session.setAttribute("jwt_user", jwt.getClaims().get("sub").toString());
 			    response.sendRedirect("profile.jsp");
 
-			} catch (InterruptedException e) {
+			//} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+			//	e.printStackTrace();
 			} catch (JwtVerificationException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -126,5 +118,47 @@ public class OIDCCallback extends HttpServlet {
 		assert(sentState.length() > 0);
 		assert(receivedState != null);
 		assert(sentState == receivedState);
+	}
+	
+	/*The token request will be easier to make in Java 11+ where the HttpClient library is introduced.
+	/*
+	 * private String sendTokenRequestJava11Plus(String tokenUrl, String reqBody)
+	 * throws IOException, InterruptedException { HttpClient client =
+	 * HttpClient.newHttpClient(); HttpRequest req = HttpRequest.newBuilder()
+	 * .uri(URI.create(tokenUrl)) .POST(BodyPublishers.ofString(reqBody))
+	 * .header("Content-Type", "application/x-www-form-urlencoded") .build();
+	 * 
+	 * HttpResponse<String> resp;
+	 * 
+	 * //Post to the /token endpoint to get our token. resp = client.send(req,
+	 * BodyHandlers.ofString()); return resp.body(); }
+	 */
+	
+	//Use older libraries to make the OAuth2 /token request to Okta.
+	private String sendTokenRequestPreJava11(String tokenUrl, String reqBody) throws IOException {
+		URL url = new URL(tokenUrl);
+		HttpURLConnection con = (HttpURLConnection)url.openConnection();
+		StringBuilder tokenResponse;
+		con.setRequestMethod("POST");
+		con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+		con.setRequestProperty("Accept", "application/json");
+		con.setDoOutput(true);
+
+		//Send POST request to Okta.
+		try(OutputStream os = con.getOutputStream()) {
+		    byte[] input = reqBody.getBytes("utf-8");
+		    os.write(input, 0, input.length);			
+		}
+		
+		//Read the token response.
+		try(BufferedReader br = new BufferedReader(
+				new InputStreamReader(con.getInputStream(), "utf-8"))) {
+					tokenResponse = new StringBuilder();
+				    String responseLine = null;
+				    while ((responseLine = br.readLine()) != null) {
+				    	tokenResponse.append(responseLine.trim());
+				    }
+				}
+		return tokenResponse.toString();
 	}
 }
